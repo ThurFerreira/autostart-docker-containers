@@ -3,65 +3,127 @@ import java.io.*;
 import java.nio.file.Files;
 import java.security.spec.ECField;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Application {
     public static final GeneralData GENERAL_DATA = new GeneralData();
     public static void main(String[] args) throws IOException, InterruptedException {
-            startNewMonitoramentoStatement(args[0]);
-        //GENERAL_DATA.dockerExitPort = 5043;
-        //addContainerToServer("back");
-        //    removeContainerFromServer(String.valueOf(5042));
+//        if (args[0].equals("delete"))
+//            removeContainerFromServer(String.valueOf(args[1]));
+        startNewMonitoramentoBackStatement();
     }
 
-    public static void startNewMonitoramentoStatement(String containerType) throws IOException, InterruptedException {
+    public static void startNewMonitoramentoBackStatement() throws IOException, InterruptedException {
         GENERAL_DATA.dockerExitPort = getNextPort();
-        String dockerRunString = "docker run -d -p " + GENERAL_DATA.dockerExitPort + ":12428 --name sae_monitoramento_" + containerType + "-" + GENERAL_DATA.dockerExitPort + " -it " + "sae_monitoramento_" + containerType;
-        String command = "echo " + dockerRunString + " > " + GENERAL_DATA.pipefile;
+        int frontPort = GENERAL_DATA.dockerExitPort+1;
+        String dockerRunString = "docker run -d -p " + GENERAL_DATA.dockerExitPort + ":12428 --name sae_monitoramento_back" + "-b" + GENERAL_DATA.dockerExitPort + "-f" + frontPort + " -it " + "sae_monitoramento_back";
+        Process process;
 
-        Process process = Runtime.getRuntime().exec(dockerRunString);
+             process = Runtime.getRuntime().exec(dockerRunString);
 
-        try{
-            // Read the standard output
-            BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String stdoutLine;
-            BufferedWriter write = new BufferedWriter(new FileWriter("output.txt", false));
-            BufferedWriter writeContainerUp = new BufferedWriter(new FileWriter("containers-up.txt", true));
+            try{
+                // Read the standard output
+                BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String stdoutLine;
+                BufferedWriter write = new BufferedWriter(new FileWriter("output.txt", false));
+                BufferedWriter writeContainerUp = new BufferedWriter(new FileWriter("containers-up.txt", true));
 
-            while ((stdoutLine = stdInput.readLine()) != null) {
-                write.write(stdoutLine);
-                write.newLine();
+                while ((stdoutLine = stdInput.readLine()) != null) {
+                    write.write(stdoutLine);
+                    write.newLine();
 
-                writeContainerUp.write(GENERAL_DATA.dockerExitPort+";"+stdoutLine);
-                writeContainerUp.newLine();
+                    writeContainerUp.write(GENERAL_DATA.dockerExitPort + ";" + stdoutLine);
+                    writeContainerUp.newLine();
+                }
+
+                write.close();
+                writeContainerUp.close();
+
+            }catch (Exception e){
+                e.printStackTrace();
             }
 
-            write.close();
-            writeContainerUp.close();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+            try{
+                // Read the standard error
+                BufferedWriter write = new BufferedWriter(new FileWriter("error.txt", false));
+                BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                String stderrLine;
+                while ((stderrLine = stdError.readLine()) != null) {
+                    System.out.println("error: " + stderrLine);
+                    write.write(stderrLine);
+                    write.newLine();
+                }
 
-        try{
-            // Read the standard error
-            BufferedWriter write = new BufferedWriter(new FileWriter("error.txt", false));
-            BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-            String stderrLine;
-            while ((stderrLine = stdError.readLine()) != null) {
-                System.out.println("error: " + stderrLine);
-                write.write(stderrLine);
-                write.newLine();
+                write.close();
+            }catch (Exception e){
+                e.printStackTrace();
             }
 
-            write.close();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+            addContainerToServer("back");
 
         // Wait for the command to finish
-        int exitCode = process.waitFor();
-        System.out.println("ExitCode: " + exitCode + "exitValue" + process.exitValue());
+            int exitCode = process.waitFor();
+            System.out.println("ExitCode: " + exitCode + "exitValue" + process.exitValue());
+
+            startNewMonitoramentoFrontStatement();
+
     }
+
+    public static void startNewMonitoramentoFrontStatement() throws IOException, InterruptedException {
+        GENERAL_DATA.dockerExitPort = getNextPort();
+        int backPort = GENERAL_DATA.dockerExitPort-1;
+        String dockerRunString = "docker run -d -p " + GENERAL_DATA.dockerExitPort + ":12430 --name sae_monitoramento_front" + "-f" + GENERAL_DATA.dockerExitPort + "-b" + backPort + " -it " + "sae_monitoramento_front";
+        Process process;
+
+            process = Runtime.getRuntime().exec(dockerRunString);
+
+            try{
+                // Read the standard output
+                BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String stdoutLine;
+                BufferedWriter write = new BufferedWriter(new FileWriter("output.txt", false));
+                BufferedWriter writeContainerUp = new BufferedWriter(new FileWriter("containers-up.txt", true));
+
+                while ((stdoutLine = stdInput.readLine()) != null) {
+                    write.write(stdoutLine);
+                    write.newLine();
+
+                    writeContainerUp.write(GENERAL_DATA.dockerExitPort + ";" + stdoutLine);
+                    writeContainerUp.newLine();
+                }
+
+                write.close();
+                writeContainerUp.close();
+
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+            try{
+                // Read the standard error
+                BufferedWriter write = new BufferedWriter(new FileWriter("error.txt", false));
+                BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                String stderrLine;
+                while ((stderrLine = stdError.readLine()) != null) {
+                    System.out.println("error: " + stderrLine);
+                    write.write(stderrLine);
+                    write.newLine();
+                }
+
+                write.close();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+            addContainerToServer("front");
+
+            // Wait for the command to finish
+            int exitCode = process.waitFor();
+            System.out.println("ExitCode: " + exitCode + "exitValue" + process.exitValue());
+        }
+
 
     public static int getNextPort(){
         try(BufferedReader reader = new BufferedReader(new FileReader(GENERAL_DATA.portFile))){

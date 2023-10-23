@@ -3,8 +3,8 @@ public class GeneralData {
     //public String logOutputPath = "/home/arthur/lri/output.log";
     //public String portFile = "/home/arthur/lri/port.txt";
     public String portFile = "/usr/local/execpipe/port.txt";
-    //public String locationsConfDir = "/root/Documents/configuracoesservidores/server_dev/nginx/";
-    public String locationsConfDir = "/home/arthur/";
+    public String locationsConfDir = "/root/Documents/configuracoesservidores/server_dev/nginx/";
+    //public String locationsConfDir = "/home/arthur/";
     public String locationsConf = locationsConfDir + "locations.conf";
     public int dockerExitPort;
     public String pipefile = "pipefile";
