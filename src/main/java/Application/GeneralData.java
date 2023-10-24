@@ -8,6 +8,7 @@ public class GeneralData {
     public String locationsConf = locationsConfDir + "locations.conf";
     public int dockerExitPort;
     public String pipefile = "pipefile";
+    public String serialNumber;
 
 
     public String originalLocations = "location /selatiot/sae_cadastro_front {\n" +

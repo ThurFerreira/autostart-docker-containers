@@ -2,23 +2,22 @@ package Application;
 import java.io.*;
 import java.nio.file.Files;
 import java.security.spec.ECField;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Application {
     public static final GeneralData GENERAL_DATA = new GeneralData();
     public static void main(String[] args) throws IOException, InterruptedException {
-//        if (args[0].equals("delete"))
-//            removeContainerFromServer(String.valueOf(args[1]));
-        startNewMonitoramentoBackStatement();
+        GENERAL_DATA.serialNumber = generateUniqueSerialNumber();
+
+        if (args[0].equals("delete"))
+            removeContainerFromServer(String.valueOf(args[1]));
+
+        startNewMonitoramentoBackStatement(args[0]);
     }
 
-    public static void startNewMonitoramentoBackStatement() throws IOException, InterruptedException {
-        GENERAL_DATA.dockerExitPort = getNextPort();
-        int frontPort = GENERAL_DATA.dockerExitPort+1;
-        String dockerRunString = "docker run -d -p " + GENERAL_DATA.dockerExitPort + ":12428 --name sae_monitoramento_back" + "-b" + GENERAL_DATA.dockerExitPort + "-f" + frontPort + " -it " + "sae_monitoramento_back";
+    public static void startNewMonitoramentoBackStatement(String port) throws IOException, InterruptedException {
+        GENERAL_DATA.dockerExitPort = Integer.parseInt(port);
+        String dockerRunString = "docker run -d -p " + GENERAL_DATA.dockerExitPort + ":12428 --name sae_monitoramento_back-" + GENERAL_DATA.serialNumber +  " -it " + "sae_monitoramento_back";
         Process process;
 
              process = Runtime.getRuntime().exec(dockerRunString);
@@ -72,9 +71,8 @@ public class Application {
     }
 
     public static void startNewMonitoramentoFrontStatement() throws IOException, InterruptedException {
-        GENERAL_DATA.dockerExitPort = getNextPort();
-        int backPort = GENERAL_DATA.dockerExitPort-1;
-        String dockerRunString = "docker run -d -p " + GENERAL_DATA.dockerExitPort + ":12430 --name sae_monitoramento_front" + "-f" + GENERAL_DATA.dockerExitPort + "-b" + backPort + " -it " + "sae_monitoramento_front";
+        GENERAL_DATA.dockerExitPort++;
+        String dockerRunString = "docker run -d -p " + GENERAL_DATA.dockerExitPort + ":12430 --name sae_monitoramento_front-" + GENERAL_DATA.serialNumber  + " -it " + "sae_monitoramento_front";
         Process process;
 
             process = Runtime.getRuntime().exec(dockerRunString);
@@ -206,21 +204,30 @@ public class Application {
     }
 
     public static String getNewNginxContainerString(String containerType){
-        String identificationTAG = "\t#" + GENERAL_DATA.dockerExitPort + "\n";
+        String identificationTAG = "#" + GENERAL_DATA.serialNumber + "\n";
         String container = "sae_monitoramento_" + containerType + "-";
         String monitoramentoHeader = "#" + container + GENERAL_DATA.dockerExitPort + identificationTAG;
         return          identificationTAG +
                         monitoramentoHeader +
                         "   location /selatiot/" + container + GENERAL_DATA.dockerExitPort + "{" + identificationTAG +
-                        "      proxy_pass http://" + container + GENERAL_DATA.dockerExitPort + ":" + GENERAL_DATA.dockerExitPort + ";" + identificationTAG +
+                        "      proxy_pass http://" + container + GENERAL_DATA.serialNumber + ":" + GENERAL_DATA.dockerExitPort + ";" + identificationTAG +
                         "      rewrite ^/" + container + GENERAL_DATA.dockerExitPort + "(.*)$ $1 break;" + identificationTAG +
                         "   }" + identificationTAG +
                         identificationTAG +
                         "   location /" + container + GENERAL_DATA.dockerExitPort + "{" + identificationTAG  +
-                        "      proxy_pass http://" + container + GENERAL_DATA.dockerExitPort + ":" + GENERAL_DATA.dockerExitPort + ";" + identificationTAG  +
+                        "      proxy_pass http://" + container + GENERAL_DATA.serialNumber + ":" + GENERAL_DATA.dockerExitPort + ";" + identificationTAG  +
                         "      rewrite ^/" + container + GENERAL_DATA.dockerExitPort + "(.*)$ $1 break;"  + identificationTAG  +
                         "   }" + identificationTAG +
                         identificationTAG;
+    }
+
+    public static String generateUniqueSerialNumber() {
+        // You can use a combination of timestamp and a random portion
+        String timestamp = Long.toString(System.currentTimeMillis());
+        String random = UUID.randomUUID().toString().replace("-", "").substring(0, 6); // Generate a random portion
+
+        // Combine the timestamp and random portion to create a unique serial number
+        return timestamp + random;
     }
 
 
