@@ -12,12 +12,11 @@ public class Application {
         if (args[0].equals("delete"))
             removeContainerFromServer(String.valueOf(args[1]));
 
-        startNewMonitoramentoBackStatement(args[0]);
+        startNewMonitoramentoFrontStatement(args[0]);
     }
-
-    public static void startNewMonitoramentoBackStatement(String port) throws IOException, InterruptedException {
-        GENERAL_DATA.dockerExitPort = Integer.parseInt(port);
-        String dockerRunString = "docker run -d -p " + GENERAL_DATA.dockerExitPort + ":12428 --name sae_monitoramento_back-" + GENERAL_DATA.serialNumber +  " -it " + "sae_monitoramento_back";
+    public static void startNewMonitoramentoBackStatement() throws IOException, InterruptedException {
+        GENERAL_DATA.dockerExitPort--;
+        String dockerRunString = "docker run -d -p " + GENERAL_DATA.dockerExitPort + ":12428 --name sae_monitoramento_back_" + GENERAL_DATA.serialNumber +  " -it " + "sae_monitoramento_back";
         Process process;
 
              process = Runtime.getRuntime().exec(dockerRunString);
@@ -66,13 +65,11 @@ public class Application {
             int exitCode = process.waitFor();
             System.out.println("ExitCode: " + exitCode + "exitValue" + process.exitValue());
 
-            startNewMonitoramentoFrontStatement();
+        }
 
-    }
-
-    public static void startNewMonitoramentoFrontStatement() throws IOException, InterruptedException {
-        GENERAL_DATA.dockerExitPort++;
-        String dockerRunString = "docker run -d -p " + GENERAL_DATA.dockerExitPort + ":12430 --name sae_monitoramento_front-" + GENERAL_DATA.serialNumber  + " -it " + "sae_monitoramento_front";
+    public static void startNewMonitoramentoFrontStatement(String port) throws IOException, InterruptedException {
+        GENERAL_DATA.dockerExitPort = Integer.parseInt(port);
+        String dockerRunString = "docker run -d -p " + GENERAL_DATA.dockerExitPort + ":12430 --name sae_monitoramento_front_" + GENERAL_DATA.serialNumber  + " -it " + "sae_monitoramento_front";
         Process process;
 
             process = Runtime.getRuntime().exec(dockerRunString);
@@ -120,6 +117,8 @@ public class Application {
             // Wait for the command to finish
             int exitCode = process.waitFor();
             System.out.println("ExitCode: " + exitCode + "exitValue" + process.exitValue());
+
+            startNewMonitoramentoBackStatement();
         }
 
 
@@ -205,7 +204,7 @@ public class Application {
 
     public static String getNewNginxContainerString(String containerType){
         String identificationTAG = "#" + GENERAL_DATA.serialNumber + "\n";
-        String container = "sae_monitoramento_" + containerType + "-";
+        String container = "sae_monitoramento_" + containerType + "_";
         String monitoramentoHeader = "#" + container + GENERAL_DATA.dockerExitPort + identificationTAG;
         return          identificationTAG +
                         monitoramentoHeader +
@@ -230,5 +229,18 @@ public class Application {
         return timestamp + random;
     }
 
+    public static void cleanupContainers() throws IOException, InterruptedException {
+        String dockerPrune = "docker image prune -f";
+        Process process;
+
+        process = Runtime.getRuntime().exec(dockerPrune);
+        int exitCode = process.waitFor();
+        System.out.println("cleanup images exit value" + process.exitValue());
+
+        dockerPrune = "docker container prune -f";
+        process = Runtime.getRuntime().exec(dockerPrune);
+        exitCode = process.waitFor();
+        System.out.println("cleanup containers exit value" + process.exitValue());
+    }
 
 }
